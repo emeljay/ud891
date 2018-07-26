@@ -7,7 +7,7 @@ body {
   background-color: rgba(0, 0, 0, 0);
 }
 
-.cvoxembed {
+.innercvoxembed {
   height: 30px;
   padding: 10px;
   background: #ffe;
@@ -56,17 +56,17 @@ body {
   left: 2px;
 }
 
-.cvoxembed select {
+.innercvoxembed select {
   max-width: 150px;
 }
 
-button {
+.cvoxembed button {
   outline: 0;
   border: 1px solid #666;
   border-radius: 4px;
 }
 
-button#toggle-cvox {
+.cvoxembed button#toggle-cvox {
   border: 1px solid rgba(0, 0, 0, 0);
   background-color: #2196F3;
   padding: 2px;
@@ -77,30 +77,30 @@ button#toggle-cvox {
   font-weight: 100;
 }
 
-span#cvox-logo {
+.cvoxembed span#cvox-logo {
   border: 1px solid rgba(0, 0, 0, 0);
   background-color: hsl(29, 92%, 60%);
   padding: 2px;
   border-radius: 3px;
 }
 
-body:not([enabled]) span#cvox-logo {
+.cvoxwrapper:not([enabled]) span#cvox-logo {
   background-color: #9E9E9E;
 }
 
-body:not([enabled]) span#cvox-logo img.enabled {
+.cvoxwrapper:not([enabled]) span#cvox-logo img.enabled {
   display: none;
 }
 
-body[enabled] span#cvox-logo img.enabled {
+.cvoxwrapper[enabled] span#cvox-logo img.enabled {
   display: initial;
 }
 
-body:not([enabled]) span#cvox-logo img.disabled {
+.cvoxwrapper:not([enabled]) span#cvox-logo img.disabled {
   display: initial;
 }
 
-body[enabled] span#cvox-logo img.disabled {
+.cvoxwrapper[enabled] span#cvox-logo img.disabled {
   display: none;
 }
 
@@ -115,19 +115,19 @@ button#toggle-cvox span {
   margin: 0px 5px;
 }
 
-body:not([enabled]) button#toggle-cvox span#disable-cvox {
+.cvoxwrapper:not([enabled]) button#toggle-cvox span#disable-cvox {
   display: none;
 }
 
-body[enabled] button#toggle-cvox span#enable-cvox {
+.cvoxwrapper[enabled] button#toggle-cvox span#enable-cvox {
   display: none;
 }
 
-.cvoxembed button {
+.innercvoxembed button {
   background: #fec;
 }
 
-.cvoxembed button:hover {
+.innercvoxembed button:hover {
   background: #fda;
 }
 
@@ -141,7 +141,7 @@ body[enabled] button#toggle-cvox span#enable-cvox {
 
 </style>
 </head>
-<body>
+<div class="cvoxwrapper">
 <div id="shade" class="shade" aria=hidden="true">
   <span id="cvox-logo">
     <img height="24" width="24" src="chromevox-no-background.svg" alt="ChromeVox Lite logo" class="enabled">
@@ -150,7 +150,7 @@ body[enabled] button#toggle-cvox span#enable-cvox {
   <span id="caption"></span>
   <button id="toggle-cvox"><span id="enable-cvox">Enable ChromeVox Lite</span><span id="disable-cvox">Disable ChromeVox Lite</button>
 </div>
-<div id="cvoxembed" class="cvoxembed" aria-hidden="true">
+<div id="innercvoxembed" class="innercvoxembed" aria-hidden="true">
   <div class="content">
     <div class="controls">
       <span>
@@ -189,14 +189,14 @@ function $(e) {
   return document.getElementById(e);
 }
 var caption = $('caption');
-var embed = $('cvoxembed');
+var embed = $('innercvoxembed');
 var voices = $('voices');
 var rates = $('rates');
 var volumeControl = $('volume');
 
 var ctrls = embed.querySelectorAll('button,select');
 
-function cvoxEmbedEnable() {
+function innercvoxembedEnable() {
   if (document.body.hasAttribute('enabled'))
     return;
   window.parent.postMessage('enable', '*');
@@ -207,7 +207,7 @@ function cvoxEmbedEnable() {
   }
 }
 
-function cvoxEmbedDisable() {
+function innercvoxembedDisable() {
   if (!document.body.hasAttribute('enabled'))
     return;
 
@@ -219,13 +219,13 @@ function cvoxEmbedDisable() {
     ctrls[i].disabled = true;
 }
 
-cvoxEmbedDisable();
+innercvoxembedDisable();
 
 $('toggle-cvox').addEventListener('click', function(e) {
   if (document.body.hasAttribute('enabled'))
-    cvoxEmbedDisable();
+    innercvoxembedDisable();
   else
-    cvoxEmbedEnable();
+    innercvoxembedEnable();
   $('toggle-cvox').blur();
 }, true);
 
@@ -354,7 +354,7 @@ window.addEventListener('message', function(e) {
   var command = e.data.command;
   switch (command) {
   case 'enable':
-    cvoxEmbedEnable();
+    innercvoxembedEnable();
     break;
   case 'speak':
     console.log('speak', e.data);

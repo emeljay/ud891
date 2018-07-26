@@ -46,14 +46,14 @@ class CvoxPageManager {
     this.embed = embed;
     this.injectStubs();
     const scriptTag = document.createElement('script');
-    scriptTag.src = 'chromandroidvox.js';
+    scriptTag.src = 'chromeandroidvox.js';
     document.head.append(scriptTag);
-    this.disableChromeVoxOnInitialLoad();
-    this.cvoxEmbedDisable();
-    this.addWindowEventListeners();
-    this.embed.updateSelectedVoiceOnLanguageUpdate(
-        document.documentElement.lang);
-    this.replaceStubsWithRealImplementation();
+    // this.disableChromeVoxOnInitialLoad();
+    // this.cvoxEmbedDisable();
+    // this.addWindowEventListeners();
+    // this.embed.updateSelectedVoiceOnLanguageUpdate(
+    //     document.documentElement.lang);
+    // this.replaceStubsWithRealImplementation();
   }
 
   replaceStubsWithRealImplementation() {
@@ -117,8 +117,6 @@ class CvoxPageManager {
   // ChromeVox embed commands.
   cvoxEmbedEnable() {
     if (document.body.hasAttribute('cvox-enabled')) return;
-
-    embed.classList.add('cvoxembed-enabled');
     window.setTimeout(function() {
       document.body.setAttribute('cvox-enabled', true);
       cvox.ChromeVox.host.activateOrDeactivateChromeVox(true);
@@ -133,9 +131,12 @@ class CvoxPageManager {
   cvoxEmbedDisable() {
     if (!document.body.hasAttribute('cvox-enabled')) return;
     document.body.removeAttribute('cvox-enabled');
+    
+    // TODO: Get rid of this circular dependency thing.
+    this.embed.disableCvox();
+
     window.accessibility.stop();
     cvox.ChromeVox.host.activateOrDeactivateChromeVox(false);
-    embed.classList.remove('cvoxembed-enabled');
   }
 
   cvoxEmbedNext() {
@@ -199,7 +200,7 @@ class CvoxEmbed {
     const defaultLang = this.getDefaultLang();
     let foundDefaultLang = false;
     this.currentVoiceOptions = speechSynthesis.getVoices();
-    for (voice of currentVoiceOptions) {
+    for (let voice of this.currentVoiceOptions) {
       var option = document.createElement('option');
       option.innerText = voice.name;
       var chromeVoxLang = voice.lang;
@@ -208,19 +209,19 @@ class CvoxEmbed {
         option.defaultSelected = true;
         foundDefaultLang = true;
       }
+      voices.appendChild(option);
     }
-    voices.appendChild(option);
   }
 
 
   // TODO: Build embed dynamically and add listeners then.
   addControlListeners() {
-    $('toggle-cvox').addEventListener('click', this.onToggleClicked, true);
-    $('next').addEventListener('click', this.onNextButtonClicked);
-    $('previous').addEventListener('click', this.onPreviousButtonClicked);
-    $('top').addEventListener('click', this.onTopButtonClicked);
-    $('heading').addEventListener('click', this.onHeadingButtonClicked);
-    $('click').addEventListener('click', this.onClickButtonClicked);
+    $('toggle-cvox').addEventListener('click', e => this.onToggleClicked(e), true);
+    $('next').addEventListener('click', e => this.onNextButtonClicked(e));
+    $('previous').addEventListener('click', e => this.onPreviousButtonClicked(e));
+    $('top').addEventListener('click', e => this.onTopButtonClicked(e));
+    $('heading').addEventListener('click', e => this.onHeadingButtonClicked(e));
+    $('click').addEventListener('click', e => this.onClickButtonClicked(e));
   }
 
   onClickButtonClicked(e) {
@@ -249,7 +250,7 @@ class CvoxEmbed {
   }
 
   onToggleClicked(e) {
-    this.root.hasAttribute('enabled') ? disableCvox() : enableCvox();
+    this.root.hasAttribute('enabled') ? this.disableCvox() : this.enableCvox();
     $('toggle-cvox').blur();
   }
 
@@ -264,8 +265,9 @@ class CvoxEmbed {
 
     this.pageManager.cvoxEmbedEnable();
 
+    this.root.classList.add('cvoxembed-enabled');
     this.root.setAttribute('enabled', '');
-    for (ctrl of ctrls) {
+    for (let ctrl of this.ctrls) {
       ctrl.disabled = false;
       ctrl.tabIndex = -1;
     }
@@ -277,8 +279,9 @@ class CvoxEmbed {
     this.pageManager.cvoxEmbedDisable();
     caption.innerHTML = '';
 
+    this.root.classList.remove('cvoxembed-enabled');
     this.root.removeAttribute('enabled');
-    for (ctrl of ctrls) {
+    for (let ctrl of this.ctrls) {
       ctrl.disabled = true;
     }
   }
@@ -363,8 +366,9 @@ class CvoxEmbed {
 class CvoxEmbedDomBuilder {
   buildHeadContent() {
     const cssLink = document.createElement('link');
-    link.href = 'embed.css';
-    link.rel = 'stylesheet';
+    cssLink.href = 'embed.css';
+    cssLink.rel = 'stylesheet';
+    return cssLink;
 
     // TODO: move this into page manager?
     // link.type = 'text/css';
@@ -375,7 +379,7 @@ class CvoxEmbedDomBuilder {
   buildEverything() {
     const wrapper = document.createElement('div');
     wrapper.id = 'cvoxembed';
-    wrapper.class = 'cvoxembed';
+    wrapper.className = 'cvoxembed';
     wrapper.ariaHidden = 'true';
 
     wrapper.innerHTML = `

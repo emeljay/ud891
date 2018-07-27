@@ -6048,7 +6048,8 @@ cvox.DomUtil.countFocusableDescendants = function(targetNode) {
 };
 cvox.DomUtil.isAttachedToDocument = function(targetNode) {
   for (;targetNode;) {
-    if (targetNode.tagName && "HTML" == targetNode.tagName) {
+    // melissalj
+    if (targetNode.tagName && ("HTML" == targetNode.tagName || "pagebody" == targetNode.id)) {
       return !0;
     }
     targetNode = targetNode.parentNode;
@@ -7541,13 +7542,14 @@ cvox.AbstractHost.prototype.killChromeVox = function() {
   this.onStateChanged_(cvox.AbstractHost.State.KILLED);
 };
 cvox.AbstractHost.prototype.onStateChanged_ = function(state) {
+    const pagebody = document.getElementById('pagebody');
   var active = state == cvox.AbstractHost.State.ACTIVE;
   if (active != cvox.ChromeVox.isActive) {
-    switch(cvox.ChromeVoxEventWatcher.cleanup(window), state) {
+    switch(cvox.ChromeVoxEventWatcher.cleanup(pagebody), state) {
       case cvox.AbstractHost.State.ACTIVE:
         cvox.ChromeVox.isActive = !0;
         cvox.ChromeVox.navigationManager.showOrHideIndicator(!0);
-        cvox.ChromeVoxEventWatcher.init(window);
+        cvox.ChromeVoxEventWatcher.init(pagebody);
         if (document.activeElement) {
           var speakNodeAlso = document.hasFocus() && !document.webkitHidden;
           cvox.ApiImplementation.syncToNode(document.activeElement, speakNodeAlso);
@@ -7558,7 +7560,7 @@ cvox.AbstractHost.prototype.onStateChanged_ = function(state) {
       case cvox.AbstractHost.State.INACTIVE:
         cvox.ChromeVox.isActive = !1;
         cvox.ChromeVox.navigationManager.showOrHideIndicator(!1);
-        cvox.ChromeVoxEventWatcher.init(window);
+        cvox.ChromeVoxEventWatcher.init(pagebody);
         break;
       case cvox.AbstractHost.State.KILLED:
         cvox.ChromeVox.isActive = !1, cvox.ChromeVox.navigationManager.showOrHideIndicator(!1);
@@ -15733,6 +15735,8 @@ cvox.Serializer.prototype.readFrom = function(store) {
 cvox.InitGlobals = function() {
 };
 cvox.InitGlobals.initGlobals = function() {
+  // melissalj
+  const pagebody = document.getElementById('pagebody');
   cvox.ChromeVox.host || (cvox.ChromeVox.host = cvox.HostFactory.getHost());
   cvox.ChromeVox.tts = (new cvox.CompositeTts).add(cvox.HostFactory.getTts()).add(cvox.History.getInstance()).add(cvox.ConsoleTts.getInstance());
   cvox.ChromeVox.braille || (cvox.ChromeVox.braille = cvox.HostFactory.getBraille());
@@ -15746,7 +15750,8 @@ cvox.InitGlobals.initGlobals = function() {
   cvox.ChromeVox.speakNode = cvox.ApiImplementation.speakNode;
   cvox.ChromeVox.serializer = new cvox.Serializer;
   cvox.ChromeVox.host.init();
-  cvox.ChromeVoxEventWatcher.init(window);
+  // melissalj
+  cvox.ChromeVoxEventWatcher.init(pagebody);
   cvox.ChromeVox.executeUserCommand = function(commandName) {
     cvox.ChromeVoxUserCommands.commands[commandName]();
   };

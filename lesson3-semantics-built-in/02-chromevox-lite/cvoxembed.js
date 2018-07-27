@@ -48,22 +48,38 @@ class CvoxPageManager {
     const scriptTag = document.createElement('script');
     scriptTag.src = 'chromeandroidvox.js';
     document.head.append(scriptTag);
-    // this.disableChromeVoxOnInitialLoad();
-    // this.cvoxEmbedDisable();
-    // this.addWindowEventListeners();
-    // this.embed.updateSelectedVoiceOnLanguageUpdate(
-    //     document.documentElement.lang);
-    // this.replaceStubsWithRealImplementation();
+    this.pageBody = document.getElementById('pagebody');
+    console.log('pagebody', this.pageBody);
+    setTimeout(() => {
+    this.disableChromeVoxOnInitialLoad();
+    this.cvoxEmbedDisable();
+    this.addWindowEventListeners();
+    this.embed.updateSelectedVoiceOnLanguageUpdate(
+        document.documentElement.lang);
+    this.replaceStubsWithRealImplementation();
+}, 300);
+  }
+
+  wrapBodyContents() {
+    const div = document.createElement("div");
+    div.id = "pagebody";
+    // Move the body's children into this wrapper
+    while (document.body.firstChild) {
+        div.appendChild(document.body.firstChild);
+    }
+    // Append the wrapper to the body
+    document.body.appendChild(div);
+    return div;
   }
 
   replaceStubsWithRealImplementation() {
     // Finally replace the stubs with a real implementation now
     // that ChromeVox won't speak on startup.
-    window.accessibility.speak = function(text, queueMode, params) {
-      this.embed.speak({text, queuemode, params});
+    window.accessibility.speak = (text, queueMode, params) => {
+      this.embed.speak({text, queueMode, params});
     };
     window.accessibility.isSpeaking = function() {};
-    window.accessibility.stop = function() {
+    window.accessibility.stop = () => {
       this.embed.stop();
     };
     window.accessibility.braille = function() {};
@@ -71,8 +87,8 @@ class CvoxPageManager {
     cvox.ChromeVox.earcons.audioMap = {};
 
     document.getElementById('enable-cvox')
-        .addEventListener('click', function() {
-          cvoxEmbedEnable();
+        .addEventListener('click', (e) => {
+          this.cvoxEmbedEnable();
         });
   }
 
@@ -116,9 +132,9 @@ class CvoxPageManager {
 
   // ChromeVox embed commands.
   cvoxEmbedEnable() {
-    if (document.body.hasAttribute('cvox-enabled')) return;
-    window.setTimeout(function() {
-      document.body.setAttribute('cvox-enabled', true);
+    if (this.pageBody.hasAttribute('cvox-enabled')) return;
+    window.setTimeout(() => {
+      this.pageBody.setAttribute('cvox-enabled', true);
       cvox.ChromeVox.host.activateOrDeactivateChromeVox(true);
       cvox.ChromeVoxEventWatcher.focusFollowsMouse = false;
       cvox.ChromeVox.executeUserCommand('jumpToTop');
@@ -129,8 +145,8 @@ class CvoxPageManager {
   }
 
   cvoxEmbedDisable() {
-    if (!document.body.hasAttribute('cvox-enabled')) return;
-    document.body.removeAttribute('cvox-enabled');
+    if (!this.pageBody.hasAttribute('cvox-enabled')) return;
+    this.pageBody.removeAttribute('cvox-enabled');
     
     // TODO: Get rid of this circular dependency thing.
     this.embed.disableCvox();
@@ -176,7 +192,9 @@ class CvoxEmbed {
     this.addControlListeners();
     this.currentVoiceOptions = [];
     speechSynthesis.onvoiceschanged = (() => this.updateVoices);
-    this.updateVoices();
+    // hackily set a timeout so it will wait for speechSynthesis to have voices.
+    setTimeout(() => this.updateVoices(), 100);
+    
   }
 
   updateSelectedVoiceOnLanguageUpdate(chromeVoxLang) {
@@ -200,6 +218,7 @@ class CvoxEmbed {
     const defaultLang = this.getDefaultLang();
     let foundDefaultLang = false;
     this.currentVoiceOptions = speechSynthesis.getVoices();
+    console.log(this.currentVoiceOptions);
     for (let voice of this.currentVoiceOptions) {
       var option = document.createElement('option');
       option.innerText = voice.name;
@@ -286,7 +305,7 @@ class CvoxEmbed {
     }
   }
 
-  controlsDataForUtterance() {
+  getControlsDataForUtterance() {
     return {
       rate: parseFloat(this.rates.selectedOptions[0].value),
       volume: this.volumeControl.value / 100.0,
@@ -321,14 +340,12 @@ class CvoxEmbed {
     if (this.speechQueue.length == 0) return;
 
     var data = this.speechQueue.shift();
-    const controlsDataForUtterance = this.getControlsData();
+    const controlsDataForUtterance = this.getControlsDataForUtterance();
     var u = new SpeechSynthesisUtterance(data.text);
     u.pitch = 2 * data.params.pitch;
     Object.assign(u, controlsDataForUtterance);
-    u.onend = function() {
-      window.setTimeout(function() {
-        speakNextUtterance();
-      }, 0);
+    u.onend = () => {
+      window.setTimeout(() => this.speakNextUtterance(), 0);
     };
     speechSynthesis.speak(u);
   }
@@ -339,20 +356,20 @@ class CvoxEmbed {
     var queueMode = data.queueMode;
     var params = data.params;
 
-    const captionHtml = this.generateNewCaptionHtml(params);
+    const captionHtml = this.generateNewCaptionHtml(params, text);
     this.updateCaption(captionHtml, queueMode);
 
     if (queueMode == 0) {
       speechSynthesis.cancel();
-      speechQueue.length = 0;
+      this.speechQueue.length = 0;
     }
 
     if (text.trim() !== '')
-      speechQueue.push({text: text, queueMode: queueMode, params: params});
-    speakNextUtterance();
+      this.speechQueue.push({text: text, queueMode: queueMode, params: params});
+    this.speakNextUtterance();
   }
 
-  generateNewCaptionHtml(params) {
+  generateNewCaptionHtml(params, text) {
     const newCaptionHtml = '<span>' + text + '</span>&nbsp;&nbsp;';
     return newCaptionHtml + (params.pitch < 0.5 ? text : '<b>' + text + '</b>');
   }
@@ -383,7 +400,7 @@ class CvoxEmbedDomBuilder {
     wrapper.ariaHidden = 'true';
 
     wrapper.innerHTML = `
-        <div id="shade" class="shade" aria=hidden="true">
+        <div id="shade" class="shade" aria-hidden="true">
   <span id="cvox-logo">
     <img height="24" width="24" src="chromevox-no-background.svg" alt="ChromeVox Lite logo" class="enabled">
     <img height="24" width="24" src="chromevox-no-background-off.svg" alt="ChromeVox Lite disabled logo" class="disabled">
